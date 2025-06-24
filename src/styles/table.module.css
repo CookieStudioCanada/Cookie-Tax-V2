@@ -1,0 +1,35 @@
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cell {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  font-family: monospace;
+  text-align: left;
+}
+
+.head {
+  background: #f7f7f7;
+  font-weight: 600;
+}
+
+.input {
+  border: none;
+  background: transparent;
+  font-family: monospace;
+  width: 100%;
+  padding: 2px 4px;
+}
+
+.input:focus {
+  outline: 2px solid #646cff;
+  outline-offset: -2px;
+}
+
+.numeric {
+  text-align: right;
+} 
