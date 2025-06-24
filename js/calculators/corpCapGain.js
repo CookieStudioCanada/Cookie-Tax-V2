@@ -1,9 +1,10 @@
-// Capital Gains Calculator (Individual & Corporate)
+// Capital Gains Calculator - Enhanced Structure
 function calcCorpCapGain(input) {
     if (!input || typeof input !== 'object') {
         return { error: 'Invalid input data' };
     }
 
+    const isCorporation = input.isCorporation || false;
     const proceeds = parseFloat(input.proceeds) || 0;
     const acb = parseFloat(input.acb) || 0;
     const outlaysExpenses = parseFloat(input.outlaysExpenses) || 0;
@@ -11,80 +12,126 @@ function calcCorpCapGain(input) {
     const safeIncomeBump = parseFloat(input.safeIncomeBump) || 0;
     const vDay = parseFloat(input.vDay) || 0;
     const cdaBalance = parseFloat(input.cdaBalance) || 0;
-    const isCorporation = input.isCorporation !== false; // Default to true
+    const rdtohEligible = parseFloat(input.rdtohEligible) || 0;
+    const rdtohNonEligible = parseFloat(input.rdtohNonEligible) || 0;
+    const numberOfShares = parseFloat(input.numberOfShares) || 1;
+    const province = input.province || 'QC';
 
-    // Capital gain/loss calculation
+    // Calculate capital gain/loss
     const netProceeds = proceeds - outlaysExpenses;
-    const capitalGain = netProceeds - acb;
-    const realizedGain = capitalGain - reserve; // Gain realized this year
-    const taxableCapitalGain = realizedGain * 0.5; // 50% inclusion rate
+    const grossGain = netProceeds - acb;
+    
+    // Apply V-day value if applicable and beneficial
+    const vDayAdjustment = vDay > acb ? vDay - acb : 0;
+    const adjustedGain = Math.max(0, grossGain - vDayAdjustment);
+    
+    // Apply safe income bump for corporate sales
+    const safeIncomeBumpTotal = isCorporation ? safeIncomeBump * numberOfShares : 0;
+    const finalGain = Math.max(0, adjustedGain - safeIncomeBumpTotal - reserve);
+    
+    const capitalGain = finalGain;
+    const taxableCapitalGain = capitalGain * 0.5;
+    const nonTaxableCapitalGain = capitalGain * 0.5;
 
-    let results = {
-        taxpayerType: isCorporation ? 'Corporation' : 'Individual',
-        proceeds: proceeds,
-        outlaysExpenses: outlaysExpenses,
-        netProceeds: netProceeds,
-        adjustedCostBase: acb,
-        capitalGain: capitalGain,
-        reserve: reserve,
-        realizedGain: realizedGain,
-        taxableCapitalGain: taxableCapitalGain
-    };
-
-    if (isCorporation) {
-        // Corporate-specific calculations
-        const cdaAddition = realizedGain * 0.5; // Non-taxable portion goes to CDA
+    // Individual tax calculation
+    if (!isCorporation) {
+        // Use simplified marginal rates for different provinces
+        let marginalRate;
+        if (province === 'QC') {
+            marginalRate = 0.485; // Approximate top marginal rate in Quebec
+        } else if (province === 'ON') {
+            marginalRate = 0.465; // Approximate top marginal rate in Ontario
+        } else {
+            marginalRate = 0.45; // Default rate
+        }
         
-        // Safe income bump (reduces capital gain for s. 55(2) purposes)
-        const adjustedCapitalGain = Math.max(0, realizedGain - safeIncomeBump);
-        const adjustedTaxableGain = adjustedCapitalGain * 0.5;
+        const taxOnGain = taxableCapitalGain * marginalRate;
+        const afterTaxProceeds = netProceeds - taxOnGain;
+        const effectiveRate = capitalGain > 0 ? taxOnGain / capitalGain : 0;
 
-        // Refundable tax calculation (Part I investment income tax)
-        const refundableRate = 0.1067; // 10⅔% refundable tax
-        const refundableTax = taxableCapitalGain * refundableRate;
-
-        // Total tax (regular corporate rate + refundable tax)
-        const regularTaxRate = 0.27; // 27% federal general rate
-        const provincialRate = 0.115; // 11.5% Quebec rate
-        const totalTaxRate = regularTaxRate + provincialRate + refundableRate;
-        const totalTax = taxableCapitalGain * totalTaxRate;
-
-        // CDA balance after addition
-        const newCDABalance = cdaBalance + cdaAddition;
-
-        results = {
-            ...results,
-            cdaAddition: cdaAddition,
-            safeIncomeBump: safeIncomeBump,
-            adjustedCapitalGain: adjustedCapitalGain,
-            adjustedTaxableGain: adjustedTaxableGain,
-            refundableTax: refundableTax,
-            regularTax: taxableCapitalGain * (regularTaxRate + provincialRate),
-            totalTax: totalTax,
-            currentCDABalance: cdaBalance,
-            newCDABalance: newCDABalance,
-            afterTaxProceeds: netProceeds - totalTax,
-            effectiveTaxRate: taxableCapitalGain > 0 ? totalTax / taxableCapitalGain : 0
-        };
-    } else {
-        // Individual calculations
-        const federalRate = 0.33; // Top federal rate
-        const provincialRate = 0.2575; // Top Quebec rate
-        const combinedRate = federalRate + provincialRate;
-        
-        const totalTax = taxableCapitalGain * combinedRate;
-        const marginalRate = combinedRate * 0.5; // Effective rate on capital gains
-
-        results = {
-            ...results,
-            federalTax: taxableCapitalGain * federalRate,
-            provincialTax: taxableCapitalGain * provincialRate,
-            totalTax: totalTax,
+        return {
+            // Transaction details
+            proceeds: proceeds,
+            outlaysExpenses: outlaysExpenses,
+            netProceeds: netProceeds,
+            acb: acb,
+            
+            // Gain calculations
+            grossGain: grossGain,
+            vDayAdjustment: vDayAdjustment,
+            safeIncomeBumpTotal: safeIncomeBumpTotal,
+            reserve: reserve,
+            capitalGain: finalGain,
+            taxableCapitalGain: taxableCapitalGain,
+            nonTaxableCapitalGain: nonTaxableCapitalGain,
+            
+            // Tax calculations
             marginalRate: marginalRate,
-            effectiveTaxRate: taxableCapitalGain > 0 ? totalTax / taxableCapitalGain : 0,
-            afterTaxProceeds: netProceeds - totalTax
+            taxOnGain: taxOnGain,
+            effectiveRate: effectiveRate,
+            afterTaxProceeds: afterTaxProceeds,
+            
+            // Flags
+            isCorporation: false,
+            province: province
         };
     }
 
-    return results;
+    // Corporate tax calculation
+    const corporateTax = taxableCapitalGain * 0.27; // Simplified corporate rate
+    const refundableTax = taxableCapitalGain * 0.3067; // 30 2/3% refundable portion
+    
+    // Account calculations
+    const cdaAddition = nonTaxableCapitalGain;
+    const newCdaBalance = cdaBalance + cdaAddition;
+    const rdtohEligibleAddition = refundableTax * 0.3067; // Simplified
+    const newRdtohEligible = rdtohEligible + rdtohEligibleAddition;
+    
+    // Integration test - compare to individual taxation
+    const corporateIntegratedTax = corporateTax; // Would need dividend calculations
+    const afterTaxCorporateIncome = capitalGain - corporateTax;
+
+    return {
+        // Transaction details
+        proceeds: proceeds,
+        outlaysExpenses: outlaysExpenses,
+        netProceeds: netProceeds,
+        acb: acb,
+        numberOfShares: numberOfShares,
+        
+        // Gain calculations
+        grossGain: grossGain,
+        vDayAdjustment: vDayAdjustment,
+        safeIncomeBumpTotal: safeIncomeBumpTotal,
+        reserve: reserve,
+        capitalGain: finalGain,
+        taxableCapitalGain: taxableCapitalGain,
+        nonTaxableCapitalGain: nonTaxableCapitalGain,
+        
+        // Tax calculations
+        corporateTax: corporateTax,
+        refundableTax: refundableTax,
+        afterTaxCorporateIncome: afterTaxCorporateIncome,
+        
+        // Account updates
+        cdaAddition: cdaAddition,
+        newCdaBalance: newCdaBalance,
+        rdtohEligibleAddition: rdtohEligibleAddition,
+        newRdtohEligible: newRdtohEligible,
+        
+        // Previous balances
+        cdaBalance: cdaBalance,
+        rdtohEligible: rdtohEligible,
+        rdtohNonEligible: rdtohNonEligible,
+        
+        // Integration analysis
+        corporateIntegratedTax: corporateIntegratedTax,
+        
+        // Safe income
+        safeIncomeBump: safeIncomeBump,
+        
+        // Flags
+        isCorporation: true,
+        province: province
+    };
 } 

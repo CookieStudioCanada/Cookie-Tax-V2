@@ -58,9 +58,9 @@ const calculators = {
         commentary: 'A capital gain arises when you dispose of capital property for more than its adjusted cost base (ACB). Only 50% of the capital gain is taxable (the "taxable capital gain").<br/><br/>For **individuals**, the taxable portion is added to income and taxed at marginal rates. For **corporations**, the non-taxable portion (50%) is added to the Capital Dividend Account (CDA), allowing tax-free distributions to shareholders. The taxable portion is taxed at corporate rates, with a portion being refundable upon payment of dividends.<br/><br/>The "safe income bump" is a planning tool under s.55(2) to reduce a capital gain on inter-corporate share sales by the amount of tax-paid retained earnings ("safe income") attributable to the shares.'
     },
     deathTax: {
-        name: 'Death Tax & Estate Planning',
+        name: 'Death Tax',
         type: 'Estate',
-        icon: 'bi-heart',
+        icon: 'bi-x-diamond',
         description: 'Calculate deemed disposition tax on death with estate planning and rollover considerations.',
         lawText: [
             { text: 'ITA s.70(5)', url: 'https://laws-lois.justice.gc.ca/eng/acts/I-3.3/section-70.html' },
@@ -200,44 +200,74 @@ function initializeCalculatorInputs() {
             notes: ''
         },
         corpTax: {
-            abi: 0,
+            activeBusinessIncome: 0,
+            investmentIncome: 0,
+            foreignIncome: 0,
+            otherIncome: 0,
+            capitalGains: 0,
+            businessDeductions: 0,
+            cca: 0,
+            interestExpense: 0,
+            otherDeductions: 0,
             sbdEligibility: 100,
-            refundableTaxes: 0,
-            rdtohBalance: 0
+            associatedCorporations: false,
+            passiveIncome: 0,
+            rdtohEligible: 0,
+            rdtohNonEligible: 0,
+            grip: 0,
+            lrip: 0,
+            cda: 0,
+            province: 'QC'
         },
         corpCapGain: {
             proceeds: 0,
             acb: 0,
+            outlaysExpenses: 0,
+            reserve: 0,
             safeIncomeBump: 0,
             vDay: 0,
             cdaBalance: 0,
-            isCorporation: true,
-            outlaysExpenses: 0,
-            reserve: 0
+            rdtohEligible: 0,
+            rdtohNonEligible: 0,
+            numberOfShares: 1,
+            isCorporation: false,
+            province: 'QC'
         },
         deathTax: {
-            dateOfDeath: '',
-            fmvAtDeath: 0,
-            acb: 0,
-            propertyType: 'capital',
-            deferralToSpouse: false
+            fmvCapitalProperty: 0,
+            acbCapitalProperty: 0,
+            fmvDepreciableProperty: 0,
+            costDepreciableProperty: 0,
+            uccDepreciableProperty: 0,
+            rrspRifValue: 0,
+            otherFinalIncome: 0,
+            spousalRollover: false,
+            province: 'QC'
         },
         rollover85: {
-            selectedAssets: 0,
-            electedAmount: 0,
+            propertyType: 'capital',
             fmv: 0,
             acb: 0,
-            boot: 0
+            ucc: 0,
+            boot: 0,
+            electedAmount: 0,
+            isIndividual: false
         },
         departureTax: {
-            fmvAtEmigration: 0,
-            acb: 0,
-            exemptPropertyFlag: false
+            fmvNonTcp: 0,
+            acbNonTcp: 0,
+            otherIncome: 0,
+            electToDefer: false,
+            province: 'QC'
         },
         amt: {
-            adjustedTaxableIncome: 0,
-            preferenceItems: 0,
-            capitalGainsPercentage: 100
+            netIncome: 0,
+            capitalGains: 0,
+            stockOptionBenefit: 0,
+            taxShelterLosses: 0,
+            disallowedDeductions: 0,
+            donationCreditsClaimed: 0,
+            regularTaxPayable: 0
         },
         windup88: {
             puc: 0,
@@ -263,7 +293,6 @@ function renderCalculatorCards() {
                     <div class="flex-grow-1">
                         <i class="${calculator.icon} calculator-icon"></i>
                         <h5 class="card-title text-cookie-brown">${calculator.name}</h5>
-                        <p class="badge bg-cookie-brown mb-2">${calculator.type}</p>
                         <p class="card-text text-muted small">${calculator.description}</p>
                     </div>
                     <div class="mt-3">
@@ -287,6 +316,10 @@ function showHome() {
     document.getElementById('dropdownText').textContent = 'Calculators';
     currentCalculator = null;
     
+    // Clear action headers
+    document.getElementById('inputFormHeaderActions').innerHTML = '';
+    document.getElementById('outputDisplayHeaderActions').innerHTML = '';
+
     // Update active state in dropdown
     updateDropdownActiveState('home');
 }
@@ -300,6 +333,10 @@ function showCalculator(calculatorKey) {
     document.getElementById('calculatorView').style.display = 'block';
     document.getElementById('calculatorTitle').textContent = calculator.name;
     document.getElementById('dropdownText').textContent = calculator.name;
+
+    // Clear action headers
+    document.getElementById('inputFormHeaderActions').innerHTML = '';
+    document.getElementById('outputDisplayHeaderActions').innerHTML = '';
     
     // Update active state in dropdown
     updateDropdownActiveState(calculatorKey);
@@ -433,9 +470,11 @@ function updateInput(calculatorKey, field, element) {
     
     calculatorInputs[calculatorKey][field] = value;
     
-    // Update totals display for indTax
+    // Update totals display for indTax and corpTax
     if (calculatorKey === 'indTax' && typeof updateTotalsDisplay === 'function') {
         updateTotalsDisplay();
+    } else if (calculatorKey === 'corpTax' && typeof updateCorpTotalsDisplay === 'function') {
+        updateCorpTotalsDisplay();
     }
     
     calculateResults();
@@ -481,6 +520,48 @@ function displayResults(results) {
         displayIndTaxResults(results);
         return;
     }
+    
+    // Use custom renderer for Corporate Tax calculator
+    if (currentCalculator === 'corpTax') {
+        displayCorpTaxResults(results);
+        return;
+    }
+    
+    // Use custom renderer for Capital Gains calculator
+    if (currentCalculator === 'corpCapGain') {
+        displayCapGainResults(results);
+        return;
+    }
+    
+    // Use custom renderer for Death Tax calculator
+    if (currentCalculator === 'deathTax') {
+        displayDeathTaxResults(results);
+        return;
+    }
+
+    // Use custom renderer for Section 85 Rollover calculator
+    if (currentCalculator === 'rollover85') {
+        displayRollover85Results(results);
+        return;
+    }
+
+    // Use custom renderer for Departure Tax calculator
+    if (currentCalculator === 'departureTax') {
+        displayDepartureTaxResults(results);
+        return;
+    }
+
+    // Use custom renderer for AMT calculator
+    if (currentCalculator === 'amt') {
+        displayAmtResults(results);
+        return;
+    }
+
+    // Use custom renderer for Wind-up calculator
+    if (currentCalculator === 'windup88') {
+        displayWindup88Results(results);
+        return;
+    }
 
     if (!results || Object.keys(results).length === 0) {
         container.innerHTML = `
@@ -493,16 +574,13 @@ function displayResults(results) {
     }
     
     // Save button
-    const saveButton = document.createElement('div');
-    saveButton.className = 'text-end mb-2';
-    saveButton.innerHTML = `
-        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('indTax')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
-            <i class="bi bi-info-circle"></i> Details & Notes
+    document.getElementById('outputDisplayHeaderActions').innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('${currentCalculator}')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
         </button>
         <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
-            <i class="bi bi-save"></i> Save Calculation
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
         </button>`;
-    container.appendChild(saveButton);
 
     for (const [key, value] of Object.entries(results)) {
         if (value !== null && value !== undefined) {
@@ -777,35 +855,59 @@ function getInputConfig(calculatorKey) {
             { key: 'cdaBalance', label: 'CDA Balance', type: 'number', icon: 'bi-wallet', description: 'Capital dividend account balance (corporate only)', conditional: 'isCorporation' }
         ],
         deathTax: [
-            { key: 'dateOfDeath', label: 'Date of Death', type: 'text', icon: 'bi-calendar-date', description: 'Date when deemed disposition occurs' },
-            { key: 'fmvAtDeath', label: 'FMV at Death', type: 'number', icon: 'bi-graph-up', description: 'Fair market value at time of death' },
-            { key: 'acb', label: 'Adjusted Cost Base', type: 'number', icon: 'bi-calculator', description: 'Tax cost of the property' },
-            { key: 'propertyType', label: 'Property Type', type: 'select', icon: 'bi-house', description: 'Type of property',
+            { key: 'fmvCapitalProperty', label: 'FMV of Capital Property', type: 'number', icon: 'bi-house', description: 'Fair market value of capital property' },
+            { key: 'acbCapitalProperty', label: 'ACB of Capital Property', type: 'number', icon: 'bi-calculator', description: 'Adjusted cost base of capital property' },
+            { key: 'fmvDepreciableProperty', label: 'FMV of Depreciable Property', type: 'number', icon: 'bi-house', description: 'Fair market value of depreciable property' },
+            { key: 'costDepreciableProperty', label: 'Cost of Depreciable Property', type: 'number', icon: 'bi-calculator', description: 'Cost of depreciable property' },
+            { key: 'uccDepreciableProperty', label: 'UCC of Depreciable Property', type: 'number', icon: 'bi-calculator', description: 'Unused capital cost of depreciable property' },
+            { key: 'rrspRifValue', label: 'RRSP RIF Value', type: 'number', icon: 'bi-piggy-bank', description: 'RIF value of the property' },
+            { key: 'otherFinalIncome', label: 'Other Final Income', type: 'number', icon: 'bi-cash-coin', description: 'Other income from the property' },
+            { key: 'spousalRollover', label: 'Spousal Rollover', type: 'checkbox', icon: 'bi-heart', description: 'Elect spousal rollover' },
+            { key: 'province', label: 'Province', type: 'select', icon: 'bi-geo-alt', description: 'Province of residence',
               options: [
-                { value: 'capital', label: 'Capital Property' },
-                { value: 'depreciable', label: 'Depreciable Property' },
-                { value: 'eligible_capital', label: 'Eligible Capital Property' },
-                { value: 'principal_residence', label: 'Principal Residence' }
+                { value: 'QC', label: 'Quebec' },
+                { value: 'ON', label: 'Ontario' },
+                { value: 'BC', label: 'British Columbia' },
+                { value: 'AB', label: 'Alberta' }
               ]
-            },
-            { key: 'deferralToSpouse', label: 'Spousal Rollover', type: 'checkbox', icon: 'bi-heart', description: 'Elect rollover to surviving spouse' }
+            }
         ],
         rollover85: [
-            { key: 'selectedAssets', label: 'Selected Assets', type: 'number', icon: 'bi-check-square', description: 'FMV of assets selected for rollover' },
+            { key: 'propertyType', label: 'Property Type', type: 'select', icon: 'bi-house', description: 'Type of property',
+              options: [
+                { value: 'capital', label: 'Capital' },
+                { value: 'depreciable', label: 'Depreciable' }
+              ]
+            },
+            { key: 'fmv', label: 'Fair Market Value', type: 'number', icon: 'bi-graph-up', description: 'Fair market value of the property' },
+            { key: 'acb', label: 'Adjusted Cost Base', type: 'number', icon: 'bi-calculator', description: 'Tax cost of the property' },
+            { key: 'ucc', label: 'UCC', type: 'number', icon: 'bi-calculator', description: 'Unused capital cost of the property' },
+            { key: 'boot', label: 'Boot', type: 'number', icon: 'bi-box', description: 'Non-share consideration received' },
             { key: 'electedAmount', label: 'Elected Amount', type: 'number', icon: 'bi-hand-index', description: 'Amount elected on Form T2057' },
-            { key: 'fmv', label: 'Fair Market Value', type: 'number', icon: 'bi-graph-up', description: 'Fair market value of assets' },
-            { key: 'acb', label: 'Adjusted Cost Base', type: 'number', icon: 'bi-calculator', description: 'Tax cost of assets to transferor' },
-            { key: 'boot', label: 'Boot', type: 'number', icon: 'bi-box', description: 'Non-share consideration received' }
+            { key: 'isIndividual', label: 'Individual', type: 'checkbox', icon: 'bi-person', description: 'Check if this is an individual taxpayer' }
         ],
         departureTax: [
-            { key: 'fmvAtEmigration', label: 'FMV at Emigration', type: 'number', icon: 'bi-airplane-engines', description: 'Fair market value when ceasing residence' },
-            { key: 'acb', label: 'Adjusted Cost Base', type: 'number', icon: 'bi-calculator', description: 'Tax cost of the property' },
-            { key: 'exemptPropertyFlag', label: 'Exempt Property', type: 'checkbox', icon: 'bi-shield-check', description: 'Property exempt from departure tax' }
+            { key: 'fmvNonTcp', label: 'FMV at Emigration', type: 'number', icon: 'bi-airplane-engines', description: 'Fair market value when ceasing residence' },
+            { key: 'acbNonTcp', label: 'Adjusted Cost Base', type: 'number', icon: 'bi-calculator', description: 'Tax cost of the property' },
+            { key: 'otherIncome', label: 'Other Income', type: 'number', icon: 'bi-cash-coin', description: 'Other income from the property' },
+            { key: 'electToDefer', label: 'Elect to Defer', type: 'checkbox', icon: 'bi-calendar-check', description: 'Elect to defer departure tax' },
+            { key: 'province', label: 'Province', type: 'select', icon: 'bi-geo-alt', description: 'Province of residence',
+              options: [
+                { value: 'QC', label: 'Quebec' },
+                { value: 'ON', label: 'Ontario' },
+                { value: 'BC', label: 'British Columbia' },
+                { value: 'AB', label: 'Alberta' }
+              ]
+            }
         ],
         amt: [
-            { key: 'adjustedTaxableIncome', label: 'Adjusted Taxable Income', type: 'number', icon: 'bi-calculator', description: 'Regular taxable income adjusted for AMT' },
-            { key: 'preferenceItems', label: 'Preference Items', type: 'number', icon: 'bi-star', description: 'AMT preference items and adjustments' },
-            { key: 'capitalGainsPercentage', label: 'Capital Gains %', type: 'number', icon: 'bi-percent', description: 'Percentage of capital gains included' }
+            { key: 'netIncome', label: 'Net Income', type: 'number', icon: 'bi-calculator', description: 'Regular taxable income adjusted for AMT' },
+            { key: 'capitalGains', label: 'Capital Gains', type: 'number', icon: 'bi-percent', description: 'Percentage of capital gains included' },
+            { key: 'stockOptionBenefit', label: 'Stock Option Benefit', type: 'number', icon: 'bi-percent', description: 'Percentage of stock option benefit included' },
+            { key: 'taxShelterLosses', label: 'Tax Shelter Losses', type: 'number', icon: 'bi-percent', description: 'Percentage of tax shelter losses included' },
+            { key: 'disallowedDeductions', label: 'Disallowed Deductions', type: 'number', icon: 'bi-percent', description: 'Percentage of disallowed deductions included' },
+            { key: 'donationCreditsClaimed', label: 'Donation Credits Claimed', type: 'number', icon: 'bi-percent', description: 'Percentage of donation credits claimed' },
+            { key: 'regularTaxPayable', label: 'Regular Tax Payable', type: 'number', icon: 'bi-calculator', description: 'Regular tax payable before AMT' }
         ],
         windup88: [
             { key: 'puc', label: 'Paid-up Capital', type: 'number', icon: 'bi-cash-coin', description: 'PUC of shares being wound up' },
@@ -824,6 +926,7 @@ function getInputConfig(calculatorKey) {
 // ------------------------------------------------------------
 function displayIndTaxResults(results) {
     const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
 
     if (!results || Object.keys(results).length === 0) {
         container.innerHTML = `
@@ -832,20 +935,20 @@ function displayIndTaxResults(results) {
                 <p class="text-muted mt-2">Enter values to see calculations</p>
             </div>
         `;
+        headerActions.innerHTML = '';
         return;
     }
 
-    // Save button
-    const saveButton = document.createElement('div');
-    saveButton.className = 'text-end mb-2';
-    saveButton.innerHTML = `
+    // Header buttons
+    headerActions.innerHTML = `
         <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('indTax')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
-            <i class="bi bi-info-circle"></i> Details & Notes
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
         </button>
         <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
-            <i class="bi bi-save"></i> Save Calculation
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
         </button>`;
-    container.appendChild(saveButton);
+    
+    container.innerHTML = ''; // Clear container before adding table
 
     // Build responsive table
     const tableWrapper = document.createElement('div');
@@ -916,6 +1019,622 @@ function displayIndTaxResults(results) {
     // Fix effective rate calculation - should be total tax / total income
     const effectiveRate = results.totalIncome > 0 ? results.netTax / results.totalIncome : 0;
     addRow('Effective tax rate', effectiveRate, false, true);
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Corporate Tax
+// ------------------------------------------------------------
+function displayCorpTaxResults(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-calculator display-4 text-muted"></i>
+                <p class="text-muted mt-2">Enter values to see calculations</p>
+            </div>
+        `;
+        headerActions.innerHTML = '';
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('corpTax')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+    
+    container.innerHTML = '';
+
+    // Build responsive table
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true, isPercent = false) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' ?
+            (isPercent ? `${(value * 100).toFixed(2)}%` : `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+            : value;
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    const tbody = document.createElement('tbody');
+
+    // SECTION: Income Allocation & Tax Calculation
+    addSectionHeader('Income Allocation & Tax Calculation');
+    addRow('Taxable income', results.taxableIncome);
+    addRow('SBD eligible income', results.sbdEligibleIncome);
+    addRow('General rate income', results.generalRateIncome);
+    addRow('Investment income', results.investmentIncome);
+    addRow('SBD limit (after passive income)', results.sbdLimit);
+
+    // Tax calculations by type
+    addSectionHeader('Tax Calculations by Income Type');
+    addRow('Federal SBD tax (9%)', results.federalSBDTax);
+    addRow('Provincial SBD tax', results.provincialSBDTax);
+    addRow('Federal general rate tax (27%)', results.federalGeneralTax);
+    addRow('Provincial general rate tax', results.provincialGeneralTax);
+    if (results.investmentIncome > 0) {
+        addRow('Federal investment tax (38⅔%)', results.federalInvestmentTax);
+        addRow('Provincial investment tax', results.provincialInvestmentTax);
+    }
+
+    // Total taxes
+    addSectionHeader('Total Tax Summary');
+    addRow('Total federal tax', results.totalFederalTax);
+    addRow('Total provincial tax', results.totalProvincialTax);
+    addRow('Total corporate tax', results.totalTax);
+    addRow('Effective tax rate', results.effectiveTaxRate, false, true);
+    addRow('After-tax income', results.afterTaxIncome);
+
+    // Refundable taxes (if any)
+    if (results.totalRefundableTax > 0) {
+        addSectionHeader('Refundable Taxes');
+        addRow('Federal refundable portion', results.refundablePortionFederal);
+        addRow('Provincial refundable portion', results.refundablePortionProvincial);
+        addRow('Total refundable tax', results.totalRefundableTax);
+    }
+
+    // Account updates
+    addSectionHeader('Account Balance Updates');
+    if (results.rdtohEligibleAddition > 0) {
+        addRow('RDTOH (Eligible) addition', results.rdtohEligibleAddition);
+        addRow('New RDTOH (Eligible) balance', results.newRdtohEligible);
+    }
+    if (results.rdtohNonEligibleAddition > 0) {
+        addRow('RDTOH (Non-eligible) addition', results.rdtohNonEligibleAddition);
+        addRow('New RDTOH (Non-eligible) balance', results.newRdtohNonEligible);
+    }
+    if (results.gripAddition > 0) {
+        addRow('GRIP addition', results.gripAddition);
+        addRow('New GRIP balance', results.newGrip);
+    }
+    if (results.lripAddition > 0) {
+        addRow('LRIP addition', results.lripAddition);
+        addRow('New LRIP balance', results.newLrip);
+    }
+    if (results.cdaAddition > 0) {
+        addRow('CDA addition', results.cdaAddition);
+        addRow('New CDA balance', results.newCda);
+    }
+
+    // Combined rates summary
+    addSectionHeader('Combined Tax Rates');
+    addRow('Combined SBD rate', results.combinedSBDRate, false, true);
+    addRow('Combined general rate', results.combinedGeneralRate, false, true);
+    if (results.investmentIncome > 0) {
+        addRow('Combined investment rate', results.combinedInvestmentRate, false, true);
+    }
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Capital Gains
+// ------------------------------------------------------------
+function displayCapGainResults(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-calculator display-4 text-muted"></i>
+                <p class="text-muted mt-2">Enter values to see calculations</p>
+            </div>
+        `;
+        headerActions.innerHTML = '';
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('corpCapGain')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+
+    container.innerHTML = '';
+
+    // Build responsive table
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true, isPercent = false) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' ?
+            (isPercent ? `${(value * 100).toFixed(2)}%` : `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+            : value;
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    const tbody = document.createElement('tbody');
+
+    // Transaction Summary
+    addSectionHeader('Transaction Summary');
+    addRow('Taxpayer type', results.isCorporation ? 'Corporation' : 'Individual', false);
+    addRow('Proceeds of disposition', results.proceeds);
+    if (results.outlaysExpenses > 0) {
+        addRow('Outlays and expenses', results.outlaysExpenses);
+        addRow('Net proceeds', results.netProceeds);
+    }
+    addRow('Adjusted cost base (ACB)', results.acb);
+
+    // Gain Calculation
+    addSectionHeader('Capital Gain Calculation');
+    addRow('Gross capital gain', results.grossGain);
+    if (results.vDayAdjustment > 0) {
+        addRow('V-day value adjustment', results.vDayAdjustment);
+    }
+    if (results.safeIncomeBumpTotal > 0) {
+        addRow('Safe income bump (s.55)', results.safeIncomeBumpTotal);
+    }
+    if (results.reserve > 0) {
+        addRow('Reserve claimed', results.reserve);
+    }
+    addRow('Net capital gain', results.capitalGain);
+    addRow('Taxable capital gain (50%)', results.taxableCapitalGain);
+    if (results.isCorporation) {
+        addRow('Non-taxable portion (50%)', results.nonTaxableCapitalGain);
+    }
+
+    // Tax calculations
+    if (results.isCorporation) {
+        addSectionHeader('Corporate Tax Implications');
+        addRow('Corporate tax on gain', results.corporateTax);
+        addRow('Refundable tax portion', results.refundableTax);
+        addRow('After-tax corporate income', results.afterTaxCorporateIncome);
+        
+        if (results.cdaAddition > 0) {
+            addSectionHeader('Account Updates');
+            addRow('CDA addition', results.cdaAddition);
+            addRow('New CDA balance', results.newCdaBalance);
+        }
+        if (results.rdtohEligibleAddition > 0) {
+            addRow('RDTOH (Eligible) addition', results.rdtohEligibleAddition);
+            addRow('New RDTOH (Eligible) balance', results.newRdtohEligible);
+        }
+    } else {
+        addSectionHeader('Individual Tax Implications');
+        addRow('Marginal tax rate', results.marginalRate, false, true);
+        addRow('Tax on capital gain', results.taxOnGain);
+        addRow('Effective rate on gain', results.effectiveRate, false, true);
+        addRow('After-tax proceeds', results.afterTaxProceeds);
+    }
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Death Tax
+// ------------------------------------------------------------
+function displayDeathTaxResults(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-calculator display-4 text-muted"></i>
+                <p class="text-muted mt-2">Enter values to see calculations</p>
+            </div>
+        `;
+        headerActions.innerHTML = '';
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('deathTax')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+
+    container.innerHTML = '';
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+
+    const tbody = document.createElement('tbody');
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true, isPercent = false) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' ?
+            (isPercent ? `${(value * 100).toFixed(2)}%` : `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+            : value;
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    if (results.spousalRolloverElected) {
+        addSectionHeader('Spousal Rollover Elected');
+        addRow('Note', results.note, false);
+        addRow('Total Tax on Final Return', results.totalTaxOnFinalReturn);
+    } else {
+        addSectionHeader('Income on Final Return');
+        if (results.taxableCapitalGain > 0) addRow('Taxable Capital Gain (Shares, etc.)', results.taxableCapitalGain);
+        if (results.recapture > 0) addRow('Recapture (Depreciable Property)', results.recapture);
+        if (results.taxableCapitalGainDepreciable > 0) addRow('Taxable Capital Gain (Depreciable Property)', results.taxableCapitalGainDepreciable);
+        if (results.rrspIncome > 0) addRow('RRSP/RRIF Income', results.rrspIncome);
+        addRow('Total Deemed Disposition Income', results.deemedDispositionIncome, true);
+        addRow('Other Income', results.otherFinalIncome, true);
+        addRow('Total Income on Final Return', results.totalIncomeOnFinalReturn, true);
+
+        addSectionHeader('Tax Liability');
+        addRow('Net Federal Tax', results.netFederalTax);
+        if (results.quebecAbatement > 0) addRow('Quebec Abatement', -results.quebecAbatement);
+        addRow('Net Provincial Tax', results.netProvincialTax);
+        addRow('Total Tax on Final Return', results.totalTaxOnFinalReturn);
+        addRow('Portion Attributable to Deemed Disposition', results.taxOnDeemedDisposition);
+    }
+    
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Section 85 Rollover
+// ------------------------------------------------------------
+function displayRollover85Results(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-calculator display-4 text-muted"></i>
+                <p class="text-muted mt-2">Enter values to see calculations</p>
+            </div>
+        `;
+        headerActions.innerHTML = '';
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('rollover85')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+    container.innerHTML = '';
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+
+    const tbody = document.createElement('tbody');
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' && isCurrency ?
+            `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : value;
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    addSectionHeader('Election Summary');
+    addRow('Elected Amount', results.electedAmount);
+    addRow('Valid Election Range', results.validRange, false);
+
+    addSectionHeader("Transferor's Tax Consequences");
+    addRow('Proceeds of Disposition', results.proceeds);
+    if (results.incomeInclusion > 0) {
+        addRow(results.inclusionType, results.incomeInclusion);
+    } else {
+        addRow('Immediate Income/Gain', 0);
+    }
+    addRow('ACB of Shares Received', results.sharesAcb);
+    if (results.deemedDividend84_1) {
+        addRow('Section 84.1 Note', results.deemedDividend84_1, false);
+    }
+
+    addSectionHeader("Corporation's Tax Consequences");
+    addRow('Cost of Property Acquired', results.corpPropertyCost);
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Departure Tax
+// ------------------------------------------------------------
+function displayDepartureTaxResults(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-calculator display-4 text-muted"></i>
+                <p class="text-muted mt-2">Enter values to see calculations</p>
+            </div>
+        `;
+        headerActions.innerHTML = '';
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('departureTax')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+    container.innerHTML = '';
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+
+    const tbody = document.createElement('tbody');
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' && isCurrency ?
+            `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : (typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value);
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    addSectionHeader('Departure Tax Calculation');
+    addRow('Capital Gain on Deemed Disposition', results.capitalGain);
+    addRow('Taxable Capital Gain (50%)', results.taxableCapitalGain);
+    addRow('Total Income in Year of Departure', results.totalIncomeInYearOfDeparture);
+    addRow('<strong>Departure Tax Liability</strong>', results.departureTaxLiability);
+
+    addSectionHeader('Deferral Election');
+    addRow('Tax Deferred', results.taxDeferred);
+    addRow('Security Required by CRA', results.securityRequired, false);
+    addRow('Note', results.note, false);
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Alternative Minimum Tax (AMT)
+// ------------------------------------------------------------
+function displayAmtResults(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        headerActions.innerHTML = '';
+        container.innerHTML = `<div class="text-center py-4"><i class="bi bi-calculator display-4 text-muted"></i><p class="text-muted mt-2">Enter values to see calculations</p></div>`;
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('amt')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+    container.innerHTML = '';
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+    const tbody = document.createElement('tbody');
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true, isPercent = false) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' ?
+            (isPercent ? `${(value * 100).toFixed(2)}%` : `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+            : value;
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+
+    addSectionHeader('AMT Base Calculation');
+    addRow('Adjusted Taxable Income for AMT', results.amtBase);
+    addRow('Less: AMT Exemption', -results.amtExemption);
+    addRow('<strong>AMT Taxable Base</strong>', results.amtTaxableBase);
+
+    addSectionHeader('Federal Minimum Tax');
+    addRow('Gross Federal AMT (at 20.5%)', results.grossFederalAmt);
+    addRow('Less: Allowed Federal Credits', -results.totalFederalAmtCredits);
+    if (results.province === 'QC') {
+        addRow('Less: Quebec Abatement (16.5%)', -results.quebecAbatement);
+    }
+    addRow('<strong>Net Federal Minimum Tax</strong>', results.finalFederalNetMinimumTax);
+
+    if (results.province === 'QC') {
+        addSectionHeader('Quebec Minimum Tax');
+        addRow('Gross Quebec AMT (at 19%)', results.grossProvincialAmt);
+        addRow('Less: Allowed Quebec Credits', -results.totalProvincialAmtCredits);
+        addRow('<strong>Net Quebec Minimum Tax</strong>', results.provincialNetMinimumTax);
+    }
+
+    addSectionHeader('Final AMT Payable');
+    addRow('Total Net Minimum Tax', results.netMinimumTax);
+    addRow('Less: Regular Federal Tax', -results.regularTaxPayable);
+    addRow('<strong>AMT Payable</strong>', results.amtPayable);
+    addRow('Minimum Tax Carryover', results.minimumTaxCarryover);
+    addRow('Effective Combined AMT Rate', results.effectiveCombinedRate, false, true);
+
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+}
+
+// ------------------------------------------------------------
+// Custom result renderer for Wind-up (s.88)
+// ------------------------------------------------------------
+function displayWindup88Results(results) {
+    const container = document.getElementById('outputDisplay');
+    const headerActions = document.getElementById('outputDisplayHeaderActions');
+
+    if (!results || Object.keys(results).length === 0) {
+        headerActions.innerHTML = '';
+        container.innerHTML = `<div class="text-center py-4"><i class="bi bi-calculator display-4 text-muted"></i><p class="text-muted mt-2">Enter values to see calculations</p></div>`;
+        return;
+    }
+
+    // Header buttons
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm me-2" onclick="showCalculatorModal('windup88')" data-bs-toggle="modal" data-bs-target="#calculatorModal">
+            <i class="bi bi-info-circle"></i> <span class="d-none d-md-inline">Details</span>
+        </button>
+        <button id="saveCalculationBtn" class="btn btn-sm btn-cookie-brown" onclick="addToHistory(currentCalculator)">
+            <i class="bi bi-save"></i> <span class="d-none d-md-inline">Save</span>
+        </button>`;
+    container.innerHTML = '';
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+    const tbody = document.createElement('tbody');
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addRow = (label, value, isCurrency = true) => {
+        if (value === undefined || value === null) return;
+        const tr = document.createElement('tr');
+        const formatted = typeof value === 'number' && isCurrency ?
+            `$${value.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : value;
+        tr.innerHTML = `<td>${label}</td><td class="text-end">${formatted}</td>`;
+        tbody.appendChild(tr);
+    };
+    
+    addSectionHeader('Deemed Dividend to Parent');
+    addRow('Total Deemed Dividend', results.deemedDividend);
+    addRow('&nbsp;&nbsp;&nbsp;Capital Dividend (tax-free)', results.cdaDividend);
+    addRow('&nbsp;&nbsp;&nbsp;Eligible Dividend (from GRIP)', results.gripDividend);
+    addRow('&nbsp;&nbsp;&nbsp;Taxable Dividend', results.taxableDividend);
+    
+    addSectionHeader("Parent's Share Disposition");
+    addRow('Proceeds (No Gain/Loss)', results.parentProceedsOnShares);
+
+    addSectionHeader('Asset Bump (s.88(1)(d))');
+    addRow('Bump Limit', results.bumpLimit);
+    addRow('Available Bump', results.availableBump);
+    addRow('New Cost of Asset to Parent', results.newAssetCostForParent);
+
+    if (results.note) {
+        addSectionHeader('Notes');
+        const noteRow = document.createElement('tr');
+        noteRow.innerHTML = `<td colspan="2" class="text-muted small">${results.note}</td>`;
+        tbody.appendChild(noteRow);
+    }
 
     table.appendChild(tbody);
     tableWrapper.appendChild(table);

@@ -180,20 +180,18 @@ function getMarginalRate(income, brackets) {
 
 // Enhanced individual tax form loader
 function loadIndTaxForm(container) {
+    const headerActions = document.getElementById('inputFormHeaderActions');
+    headerActions.innerHTML = `
+        <button class="btn btn-outline-cookie-brown btn-sm" onclick="startT1Quiz()">
+            <i class="bi bi-question-circle"></i>
+            <span class="d-none d-md-inline">Assistant</span>
+        </button>
+    `;
+
     container.innerHTML = '';
     container.className = 'fade-in';
 
     const inputs = calculatorInputs.indTax;
-
-    // Add Quiz Button
-    const quizButtonRow = document.createElement('div');
-    quizButtonRow.className = 'text-center mb-3';
-    quizButtonRow.innerHTML = `
-        <button class="btn btn-outline-cookie-brown btn-sm" onclick="startT1Quiz()">
-            <i class="bi bi-question-circle"></i> Start T1 Quiz Assistant
-        </button>
-    `;
-    container.appendChild(quizButtonRow);
 
     const tableWrapper = document.createElement('div');
     tableWrapper.className = 'table-responsive';

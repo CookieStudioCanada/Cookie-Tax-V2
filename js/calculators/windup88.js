@@ -1,71 +1,118 @@
-// Section 88 Wind-up Calculator
+// Enhanced Wind-up (s.88(1)) Calculator - Enhanced Structure
 function calcWindup88(input) {
     if (!input || typeof input !== 'object') {
         return { error: 'Invalid input data' };
     }
 
-    const puc = parseFloat(input.puc) || 0;
-    const grip = parseFloat(input.grip) || 0;
-    const cda = parseFloat(input.cda) || 0;
-    const nerdtoh = parseFloat(input.nerdtoh) || 0;
-    const rdtoh = parseFloat(input.rdtoh) || 0;
+    // Inputs
+    const parentAcbInSub = parseFloat(input.parentAcbInSub) || 0;
+    const subNetAssetFmv = parseFloat(input.subNetAssetFmv) || 0;
+    const subAssetTaxCost = parseFloat(input.subAssetTaxCost) || 0;
+    const subPuc = parseFloat(input.subPuc) || 0;
+    const subLiabilities = parseFloat(input.subLiabilities) || 0;
+    const subCda = parseFloat(input.subCda) || 0;
+    const subGrip = parseFloat(input.subGrip) || 0;
+    const nonDepreciableFmv = parseFloat(input.nonDepreciableFmv) || 0;
+    const nonDepreciableAcb = parseFloat(input.nonDepreciableAcb) || 0;
 
-    // Wind-up distribution analysis
-    
-    // Step 1: Capital dividend distribution (from CDA)
-    const capitalDividend = Math.min(cda, puc); // Limited by PUC
-    const remainingCDA = cda - capitalDividend;
-    
-    // Step 2: Eligible dividend distribution (from GRIP)
-    const eligibleDividend = Math.min(grip, puc - capitalDividend);
-    const remainingGRIP = grip - eligibleDividend;
-    
-    // Step 3: Non-eligible dividend distribution (remainder)
-    const nonEligibleDividend = Math.max(0, puc - capitalDividend - eligibleDividend);
-    
-    // Step 4: Calculate dividend refunds
-    const eligibleRefund = Math.min(rdtoh, eligibleDividend * (1/3)); // 1/3 refund rate
-    const nonEligibleRefund = Math.min(nerdtoh, nonEligibleDividend * (38.33/100)); // 38⅓% refund rate
-    const totalRefund = eligibleRefund + nonEligibleRefund;
-    
-    // Tax-free dividend buckets
-    const taxFreeDividendBuckets = capitalDividend + (totalRefund * 0.72); // Simplified integration
-    
-    // Integration analysis
-    const totalDistribution = capitalDividend + eligibleDividend + nonEligibleDividend;
-    const integrationResult = totalDistribution - (eligibleDividend * 0.38) - (nonEligibleDividend * 0.15); // Simplified
-    
-    // Remaining balances after wind-up
-    const remainingRDTOH = rdtoh - eligibleRefund;
-    const remainingNERDTOH = nerdtoh - nonEligibleRefund;
-    
-    // Shareholder tax implications (simplified)
-    const shareholderTaxOnEligible = eligibleDividend * 0.38 * 0.25; // Grossed up and taxed
-    const shareholderTaxOnNonEligible = nonEligibleDividend * 0.15 * 0.45; // Grossed up and taxed
-    const totalShareholderTax = shareholderTaxOnEligible + shareholderTaxOnNonEligible;
-    
+    // --- Wind-up Calculations (s.88(1)) ---
+
+    // 1. Deemed Dividend to Parent
+    const subNetAssetsForDividend = subNetAssetFmv - subLiabilities;
+    const deemedDividend = Math.max(0, subNetAssetsForDividend - subPuc);
+
+    // 2. Allocate Deemed Dividend to Tax Accounts
+    let remainingDividend = deemedDividend;
+    const cdaDividend = Math.min(remainingDividend, subCda);
+    remainingDividend -= cdaDividend;
+    const gripDividend = Math.min(remainingDividend, subGrip);
+    remainingDividend -= gripDividend;
+    const taxableDividend = remainingDividend;
+
+    // 3. Parent's Proceeds on Sub Shares (No Gain/Loss)
+    const parentProceedsOnShares = parentAcbInSub;
+
+    // 4. "Bump" Calculation for Non-Depreciable Capital Property
+    const bumpLimit = Math.max(0, parentAcbInSub - (subAssetTaxCost - subLiabilities));
+    const maxAssetBump = Math.max(0, nonDepreciableFmv - nonDepreciableAcb);
+    const availableBump = Math.min(bumpLimit, maxAssetBump);
+
+    const newAssetCostForParent = nonDepreciableAcb + availableBump;
+
     return {
-        paidUpCapital: puc,
-        gripBalance: grip,
-        cdaBalance: cda,
-        nerdtohBalance: nerdtoh,
-        rdtohBalance: rdtoh,
-        capitalDividend: capitalDividend,
-        eligibleDividend: eligibleDividend,
-        nonEligibleDividend: nonEligibleDividend,
-        totalDistribution: totalDistribution,
-        eligibleRefund: eligibleRefund,
-        nonEligibleRefund: nonEligibleRefund,
-        totalRefund: totalRefund,
-        taxFreeDividendBuckets: taxFreeDividendBuckets,
-        integrationResult: integrationResult,
-        remainingGRIP: remainingGRIP,
-        remainingCDA: remainingCDA,
-        remainingRDTOH: remainingRDTOH,
-        remainingNERDTOH: remainingNERDTOH,
-        shareholderTaxOnEligible: shareholderTaxOnEligible,
-        shareholderTaxOnNonEligible: shareholderTaxOnNonEligible,
-        totalShareholderTax: totalShareholderTax,
-        netToShareholder: totalDistribution - totalShareholderTax
+        // Deemed Dividend to Parent
+        deemedDividend: deemedDividend,
+        cdaDividend: cdaDividend,
+        gripDividend: gripDividend,
+        taxableDividend: taxableDividend,
+        
+        // Parent's Share Disposition
+        parentProceedsOnShares: parentProceedsOnShares,
+        parentGainOnShares: 0, // No gain or loss under s.88(1)
+        
+        // Asset Bump (s.88(1)(d))
+        bumpLimit: bumpLimit,
+        availableBump: availableBump,
+        newAssetCostForParent: newAssetCostForParent,
+        
+        note: "This is a simplified s.88(1) wind-up. Complex rules apply."
     };
+}
+
+// Enhanced Wind-up form loader
+function loadWindup88Form(container) {
+    container.innerHTML = '';
+    container.className = 'fade-in';
+
+    const inputs = calculatorInputs.windup88;
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'table-responsive';
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-borderless align-middle';
+    const tbody = document.createElement('tbody');
+
+    const addSectionHeader = (title) => {
+        const tr = document.createElement('tr');
+        tr.className = 'table-light';
+        tr.innerHTML = `<th colspan="2" class="fw-semibold text-cookie-brown">${title}</th>`;
+        tbody.appendChild(tr);
+    };
+
+    const addInputRow = (label, key) => {
+        const tr = document.createElement('tr');
+        const tdLabel = document.createElement('td');
+        tdLabel.textContent = label;
+        tr.appendChild(tdLabel);
+
+        const tdInput = document.createElement('td');
+        const inputEl = document.createElement('input');
+        inputEl.type = 'number';
+        inputEl.value = inputs[key] || 0;
+        inputEl.className = 'form-control form-control-sm text-end';
+        inputEl.onchange = () => updateInput('windup88', key, inputEl);
+        tdInput.appendChild(inputEl);
+        tr.appendChild(tdInput);
+        tbody.appendChild(tr);
+    };
+
+    addSectionHeader("ParentCo's Investment in SubCo");
+    addInputRow("Parent's ACB in SubCo Shares", 'parentAcbInSub');
+
+    addSectionHeader("SubCo's Financial Position");
+    addInputRow('FMV of All Assets Distributed', 'subNetAssetFmv');
+    addInputRow('Aggregate Tax Cost of All Assets', 'subAssetTaxCost');
+    addInputRow('Liabilities Assumed by Parent', 'subLiabilities');
+    addInputRow('Paid-Up Capital (PUC) of SubCo Shares', 'subPuc');
+
+    addSectionHeader("SubCo's Tax Accounts");
+    addInputRow('Capital Dividend Account (CDA)', 'subCda');
+    addInputRow('General Rate Income Pool (GRIP)', 'subGrip');
+
+    addSectionHeader('Asset Bump Calculation (s.88(1)(d))');
+    addInputRow('FMV of Non-Depreciable Capital Property', 'nonDepreciableFmv');
+    addInputRow('ACB of Non-Depreciable Capital Property', 'nonDepreciableAcb');
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
 } 

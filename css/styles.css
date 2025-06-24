@@ -1,7 +1,7 @@
 /* Cookie Tax - Simplified Professional Theme */
 :root {
-    --primary-color: #6c5b47;      /* Warm brown */
-    --accent-color: #d4af37;       /* Gold accent */
+    --primary-color: #000000;      /* Was Warm brown, now Black */
+    --accent-color: #EAA900;       /* Was Gold, now Dark Mustard */
     --background-light: #f8f9fa;   /* Light gray background */
 }
 
@@ -13,8 +13,8 @@
 }
 
 .btn-cookie-brown:hover {
-    background-color: #5a4a3a;
-    border-color: #5a4a3a;
+    background-color: #333333;
+    border-color: #333333;
     color: white;
 }
 
@@ -32,6 +32,9 @@
 /* Background and Text Colors */
 body {
     background-color: var(--background-light);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 .bg-cookie-cream {
@@ -84,6 +87,12 @@ body {
     padding: 2rem;
 }
 
+.calculator-card .card-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
 .calculator-icon {
     font-size: 3rem;
     color: var(--accent-color);
@@ -110,15 +119,15 @@ body {
 
 /* Navigation Styles */
 .navbar {
-    background-color: white !important;
-    border-bottom: 1px solid #e9ecef !important;
+    background-color: var(--accent-color) !important;
+    border-bottom: 1px solid #d39e00 !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .navbar-brand {
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--primary-color) !important;
+    color: #000000 !important;
 }
 
 .dropdown-item.active, .nav-link.active {
@@ -135,6 +144,14 @@ body {
 /* Modal and Tabs */
 .nav-tabs .nav-link {
     color: var(--primary-color);
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: bold;
+    color: #000000 !important;
+    text-decoration: underline;
+    background-color: transparent !important;
+    border-color: #dee2e6 #dee2e6 #fff !important;
 }
 
 /* Animation */
@@ -216,4 +233,8 @@ body {
 
 .table-responsive {
     margin-top: 0.5rem;
+}
+
+main {
+    flex: 1;
 } 
