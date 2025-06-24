@@ -1,22 +1,200 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cookie Tax 2.0 - Québec/Canada Tax Playground</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍪 Cookie Tax 2.0 - Canadian Tax Calculators</title>
     
-    <!-- Bootstrap 5.3.7 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Header -->
+    <nav class="navbar navbar-expand-lg bg-cookie-cream border-bottom">
+        <div class="container">
+            <button class="navbar-brand btn btn-link text-decoration-none p-0" onclick="showHome()">
+                🍪 Cookie Tax 2.0
+            </button>
+
+            <!-- Desktop & Mobile Dropdown Menu -->
+            <div class="dropdown">
+                <button class="btn btn-cookie-brown dropdown-toggle d-flex align-items-center" 
+                        type="button" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false"
+                        id="calculatorDropdown">
+                    <i class="bi bi-list me-2"></i>
+                    <span id="dropdownText">Calculators</span>
+                </button>
+                
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <button class="dropdown-item" onclick="showHome()">
+                            <i class="bi bi-house me-2"></i>Home
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('indTax')">
+                            <i class="bi bi-calculator me-2"></i>Individual Tax
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('corpTax')">
+                            <i class="bi bi-calculator me-2"></i>Corporate Tax
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('corpCapGain')">
+                            <i class="bi bi-calculator me-2"></i>Capital Gain
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('deathTax')">
+                            <i class="bi bi-calculator me-2"></i>Death Tax & Estate Planning
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('rollover85')">
+                            <i class="bi bi-calculator me-2"></i>Section 85 Rollover
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('departureTax')">
+                            <i class="bi bi-calculator me-2"></i>Departure Tax
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('amt')">
+                            <i class="bi bi-calculator me-2"></i>Alternative Minimum Tax
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" onclick="showCalculator('windup88')">
+                            <i class="bi bi-calculator me-2"></i>Wind-up
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid p-4">
+        <!-- Home View -->
+        <div id="homeView">
+            <div class="text-center mb-5">
+                <h1 class="display-4 text-cookie-brown mb-3">🍪 Cookie Tax 2.0</h1>
+                <p class="lead text-cookie-brown">
+                    Professional-grade Canadian tax calculators for Quebec and Federal taxation
+                </p>
+            </div>
+            
+            <!-- Calculator Cards -->
+            <div class="row g-4" id="calculatorCards">
+                <!-- Calculator cards will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Calculator View -->
+        <div id="calculatorView" style="display: none;">
+            <!-- Calculator Header -->
+            <div class="d-flex align-items-center mb-4">
+                <button class="btn btn-outline-cookie-brown me-3" onclick="showHome()">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Home
+                </button>
+                <h2 class="text-cookie-brown mb-0">
+                    <i class="bi bi-calculator me-2"></i>
+                    <span id="calculatorTitle">Calculator</span>
+                </h2>
+            </div>
+
+            <!-- Input/Output Section -->
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="card tax-card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-pencil-square me-2"></i>
+                                Input Parameters
+                            </h5>
+                        </div>
+                        <div class="card-body" id="inputForm">
+                            <!-- Dynamic input form will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="card tax-card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-bar-chart-line me-2"></i>
+                                Calculation Results
+                            </h5>
+                        </div>
+                        <div class="card-body" id="outputDisplay">
+                            <!-- Calculation results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Calculator Details Modal -->
+    <div class="modal fade" id="calculatorModal" tabindex="-1" aria-labelledby="calculatorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-cookie-cream">
+                    <h5 class="modal-title text-cookie-brown" id="calculatorModalLabel">
+                        <i id="modalIcon" class="me-2"></i>
+                        <span id="modalTitle">Calculator Details</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalContent">
+                        <!-- Dynamic content will be inserted here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-cookie-brown" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-cookie-brown" id="modalCalculateBtn">
+                        <i class="bi bi-calculator me-1"></i>
+                        Open Calculator
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simple Footer -->
+    <footer class="bg-cookie-brown text-white py-3 mt-4">
+        <div class="container text-center">
+            <small>
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                For educational purposes only. Consult a tax professional for actual tax planning.
+            </small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Bootstrap 5.3.7 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  </body>
+    <!-- Application JS -->
+    <script src="js/app.js"></script>
+    <script src="js/calculators/indTax.js"></script>
+    <script src="js/calculators/corpTax.js"></script>
+    <script src="js/calculators/corpCapGain.js"></script>
+    <script src="js/calculators/deathTax.js"></script>
+    <script src="js/calculators/rollover85.js"></script>
+    <script src="js/calculators/departureTax.js"></script>
+    <script src="js/calculators/amt.js"></script>
+    <script src="js/calculators/windup88.js"></script>
+</body>
 </html> 

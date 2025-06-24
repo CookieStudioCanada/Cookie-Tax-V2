@@ -1,0 +1,219 @@
+/* Cookie Tax - Simplified Professional Theme */
+:root {
+    --primary-color: #6c5b47;      /* Warm brown */
+    --accent-color: #d4af37;       /* Gold accent */
+    --background-light: #f8f9fa;   /* Light gray background */
+}
+
+/* Custom Bootstrap Button Styles */
+.btn-cookie-brown {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.btn-cookie-brown:hover {
+    background-color: #5a4a3a;
+    border-color: #5a4a3a;
+    color: white;
+}
+
+.btn-outline-cookie-brown {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-cookie-brown:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Background and Text Colors */
+body {
+    background-color: var(--background-light);
+}
+
+.bg-cookie-cream {
+    background-color: white !important;
+}
+
+.bg-cookie-brown {
+    background-color: var(--primary-color) !important;
+}
+
+.text-cookie-brown {
+    color: var(--primary-color) !important;
+}
+
+.text-cookie-gold {
+    color: var(--accent-color) !important;
+}
+
+/* Card Styles */
+.tax-card, .card.calculator-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tax-card:hover, .card.calculator-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tax-card .card-header, .modal-header {
+    background-color: var(--background-light) !important;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+}
+
+/* Calculator Card Styles */
+.calculator-card {
+    cursor: pointer;
+}
+
+.calculator-card:hover {
+    border-color: var(--accent-color);
+}
+
+.calculator-card .card-body {
+    text-align: center;
+    padding: 2rem;
+}
+
+.calculator-icon {
+    font-size: 3rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+/* Form Styles */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(108, 91, 71, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.input-group-text {
+    background-color: var(--background-light);
+    border-color: #e9ecef;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Navigation Styles */
+.navbar {
+    background-color: white !important;
+    border-bottom: 1px solid #e9ecef !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color) !important;
+}
+
+.dropdown-item.active, .nav-link.active {
+    background-color: var(--primary-color);
+    color: white !important;
+    border-color: var(--primary-color) !important;
+}
+
+.dropdown-item:hover {
+    background-color: var(--background-light);
+    color: var(--primary-color);
+}
+
+/* Modal and Tabs */
+.nav-tabs .nav-link {
+    color: var(--primary-color);
+}
+
+/* Animation */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Result Display */
+.result-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: var(--background-light);
+    border-left: 4px solid var(--accent-color);
+    border-radius: 4px;
+}
+
+.result-value {
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.result-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* Highlighted summary for results */
+.result-summary {
+    background-color: var(--background-light);
+    border-left: 6px solid var(--accent-color);
+    padding: 1rem;
+    border-radius: 4px;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .calculator-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .calculator-icon {
+        font-size: 2.5rem;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+    }
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-border-cookie {
+    color: var(--primary-color);
+}
+
+/* Error states */
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.invalid-feedback {
+    display: block;
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.table-responsive {
+    margin-top: 0.5rem;
+} 

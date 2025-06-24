@@ -1,125 +1,140 @@
-# Cookie Tax 2.0 (Nano MVP)
+# 🍪 Cookie Tax 2.0
 
-A purely client-side Québec/Canada tax playground built with modern web technologies.
-
-## Tech Stack
-
-- **Vite + React 18 + TypeScript** - Fast dev server with type safety
-- **CSS Modules** - Scoped styling with zero runtime
-- **Zustand** - Lightweight global state management
-- **Plain HTML Tables** - Simple, accessible data display
-- **Vitest + React Testing Library** - Lightweight unit testing
-- **localStorage** - Client-side persistence
+Professional-grade Canadian tax calculators for Quebec and Federal taxation, now built with vanilla HTML, CSS (Bootstrap), and JavaScript.
 
 ## Features
 
-- ✅ Real-time tax calculation for Federal and Quebec taxes
-- ✅ Editable income table with salary, dividends, and other income
-- ✅ Automatic calculation on input changes
-- ✅ Data persistence in localStorage
-- ✅ Responsive design with clean UI
-- ✅ Comprehensive unit tests
+- **8 Professional Tax Calculators:**
+  - Individual Tax Calculator (T1)
+  - Corporate Tax Calculator (T2)
+  - Corporate Capital Gains
+  - Death Tax & Estate Planning
+  - Section 85 Rollover
+  - Departure Tax (Emigration)
+  - Alternative Minimum Tax (AMT)
+  - Section 88 Wind-up
 
-## Project Structure
+- **Key Benefits:**
+  - Clean vanilla JavaScript - no React complexity
+  - Bootstrap 5 for responsive design
+  - Separate calculator modules for easy maintenance
+  - Canadian federal and Quebec tax rates (2025)
+  - Real-time calculations
+  - Professional tax planning insights
+
+## Quick Start
+
+1. Clone or download this repository
+2. Open `index.html` in any modern web browser
+3. No build process, dependencies, or server required!
+
+## Structure
 
 ```
-src/
-  components/
-    App.tsx              # Main application component
-    IncomeTable.tsx      # Editable income input table
-    SummaryBar.tsx       # Tax calculation display
-  stores/
-    useScenarioStore.ts  # Zustand state management
-  calculators/
-    indTax.ts           # Pure tax calculation logic
-  rates/
-    2025.json           # Federal and Quebec tax brackets
-  styles/
-    table.module.css    # Table styling
-    summary.module.css  # Summary bar styling
-  tests/
-    indTax.test.ts      # Unit tests for tax calculations
+Cookie Tax V2/
+├── index.html              # Main application
+├── css/
+│   └── styles.css          # Custom styling with cookie theme
+├── js/
+│   ├── app.js              # Main application logic
+│   └── calculators/        # Individual calculator modules
+│       ├── indTax.js       # Individual tax calculator
+│       ├── corpTax.js      # Corporate tax calculator
+│       ├── corpCapGain.js  # Corporate capital gains
+│       ├── deathTax.js     # Death tax calculator
+│       ├── rollover85.js   # Section 85 rollover
+│       ├── departureTax.js # Departure tax calculator
+│       ├── amt.js          # Alternative minimum tax
+│       └── windup88.js     # Section 88 wind-up
+├── data/
+│   └── 2025.json          # Tax rates and brackets
+└── README.md
 ```
 
-## Getting Started
+## Tax Calculations Included
 
-### Prerequisites
+### Individual Tax (T1)
+- Employment income, dividends, capital gains
+- Federal and provincial tax calculations
+- Personal tax credits and deductions
+- Marginal and effective tax rates
 
-- Node.js 18+ 
-- npm
+### Corporate Tax (T2)
+- Small business deduction (SBD)
+- General rate income
+- GRIP and LRIP calculations
+- Refundable tax mechanisms
 
-### Installation
+### Corporate Capital Gains
+- 50% inclusion rate
+- Capital dividend account (CDA) additions
+- Safe income bump analysis
+- Refundable tax implications
 
-```bash
-npm install
-```
+### Death Tax & Estate Planning
+- Deemed disposition at death
+- Spousal rollover elections
+- Estate valuation and tax planning
+- Liquidity requirements
 
-### Development
+### Section 85 Rollover
+- Tax-deferred property transfers
+- Elected amount validation
+- Boot and share consideration
+- PUC grinding rules
 
-```bash
-npm run dev
-```
+### Departure Tax
+- Emigration tax calculations
+- Deemed disposition rules
+- Security posting requirements
+- Five-year deferral options
 
-Open [http://localhost:5173](http://localhost:5173) to view the application.
+### Alternative Minimum Tax (AMT)
+- 2024+ AMT reforms (20.5% rate, $173K exemption)
+- Enhanced capital gains inclusion
+- Credit carryforward tracking
+- Preference item adjustments
 
-### Testing
+### Section 88 Wind-up
+- Corporate dissolution analysis
+- Dividend distribution optimization
+- RDTOH refund calculations
+- Shareholder tax implications
 
-```bash
-npm test      # Run tests
-npm run build # Production build
-```
+## Browser Compatibility
 
-## How It Works
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
 
-1. **Input Income**: Enter your salary, eligible dividends, and other income
-2. **Real-time Calculation**: Tax is calculated automatically using 2025 tax brackets
-3. **View Results**: See your combined Federal and Quebec tax burden
-4. **Data Persistence**: Your inputs are saved to localStorage
+## Tax Year
 
-## Tax Calculation
+Currently configured for **2025 tax year** with:
+- Updated federal and Quebec tax brackets
+- Current basic personal amounts
+- AMT reforms implementation
+- Small business deduction rates
 
-The calculator uses simplified 2025 tax brackets:
+## Disclaimer
 
-**Federal Tax Brackets:**
-- 15% on income up to $55,867
-- 20.5% on income from $55,867 to $111,733
-- 26% on income from $111,733 to $173,205
-- 29% on income from $173,205 to $246,752
-- 33% on income over $246,752
+⚠️ **For educational purposes only.** This calculator provides estimates based on simplified tax rules. Always consult a qualified tax professional for actual tax planning and compliance.
 
-**Quebec Tax Brackets:**
-- 14% on income up to $51,780
-- 19% on income from $51,780 to $103,545
-- 24% on income from $103,545 to $126,000
-- 25.75% on income over $126,000
+## Development
 
-## Limitations
+To modify or extend the calculators:
 
-- **Simplified Calculation**: This is a demo calculator and does not include:
-  - Basic personal amounts and tax credits
-  - Dividend gross-up and tax credits
-  - Employment insurance and pension contributions
-  - Deductions and other tax planning strategies
-  
-- **For Demonstration Only**: Do not use for actual tax planning. Consult a tax professional for real tax calculations.
+1. **Add a new calculator:** Create a new file in `js/calculators/`
+2. **Modify tax rates:** Edit `data/2025.json`
+3. **Update styling:** Modify `css/styles.css`
+4. **Add new features:** Extend `js/app.js`
 
-## Architecture Decisions
-
-- **Pure Functions**: Tax calculation logic is separated from UI components
-- **Type Safety**: Full TypeScript coverage with strict compiler options
-- **CSS Modules**: Scoped styling prevents class name conflicts
-- **Zustand**: Minimal boilerplate for state management
-- **localStorage**: Simple persistence without external dependencies
-- **Plain Tables**: Accessible, semantic HTML without complex grid libraries
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+No build process required - just edit the files and refresh your browser!
 
 ## License
 
-MIT License - see LICENSE file for details. 
+Educational use only. Not for commercial tax preparation.
+
+---
+
+*Built with ❤️ and vanilla JavaScript* 
